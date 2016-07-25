@@ -68,7 +68,7 @@ def ban(bot, update, job_queue):
     s = Session(exiler, exilee_id, dict())
     print("Initiating", s, exilee_username)
     bot.sendMessage(chat_id, text=exilee_username+ " nominated for banning by " + s.exiler + \
-        "\nVote with /yes or /no\nTimer: " + str(settings[chat_id].timer) + "s")
+        "\nVote with /yes or /no\nTimer: " + str(settings[chat_id].timer) + "s\nQuorum: " + str(settins[chat_id].quorum))
 
     job = Job(conclude, settings[chat_id].timer, repeat=False, context=chat_id)
     job_queue.put(job)
