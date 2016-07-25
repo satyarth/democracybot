@@ -1,6 +1,7 @@
 from telegram.ext import Updater, CommandHandler, Job
 from recordclass import recordclass
 from textwrap import dedent
+from math import ceil
 from config import key
 
 
@@ -18,7 +19,7 @@ def update_votes(bot, chat_id):
 
 def init_settings(bot, chat_id):
     member_count = bot.getChatMembersCount(chat_id)
-    quorum = int(member_count*0.4)
+    quorum = ceil(member_count*0.4) if ceil(member_count*0.4) > 3 else 3
     settings[chat_id] = Settings(quorum, 60)
     bot.sendMessage(chat_id, text="Bot settings initialized.\n" +
                                   "Quorum: " + str(quorum) + "\n"+
