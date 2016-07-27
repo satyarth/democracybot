@@ -130,7 +130,7 @@ def conclude(bot, job):
         bot.kickChatMember(chat_id, s.exilee_id)
     else:
         bot.sendMessage(chat_id, text='Voting over. Failed.')
-        if len(s.votes) >= set_.quorum:
+        if len(s.votes) <= set_.quorum:
             bot.sendMessage(chat_id, text='Quorum not reached.')
 
     del sessions[chat_id]
