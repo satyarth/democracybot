@@ -125,14 +125,15 @@ def conclude(bot, job):
     chat_id = job.context
     s = sessions[chat_id]
     set_ = settings[chat_id]
+    response = "Voting over\n"
     if len(s.votes) >= set_.quorum and len([None for voter in s.votes if s.votes[voter]]) > len([None for voter in s.votes if not s.votes[voter]]):
-        bot.sendMessage(chat_id, text='Voting over. Motion passed.')
+        response += 'Motion passed\n'
         bot.kickChatMember(chat_id, s.exilee_id)
     else:
-        bot.sendMessage(chat_id, text='Voting over. Failed.')
+        response += 'Motion failed\n'
         if len(s.votes) <= set_.quorum:
-            bot.sendMessage(chat_id, text='Quorum not reached.')
-
+            response += 'Quorum not reached'
+    bot.sendMessage(chat_id, text=response)
     del sessions[chat_id]
 
 
