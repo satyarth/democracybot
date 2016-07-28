@@ -19,7 +19,7 @@ def update_votes(bot, chat_id):
 
 def init_settings(bot, chat_id):
     member_count = bot.getChatMembersCount(chat_id)
-    quorum = ceil(member_count*0.3) if ceil(member_count*0.3) > 3 else 3
+    quorum = ceil(member_count*0.3) if ceil(member_count*0.31) > 3 else 3
     settings[chat_id] = Settings(quorum, 60)
     bot.sendMessage(chat_id, text="Bot settings initialized.\n" +
                                   "Quorum: " + str(quorum) + "\n"+
@@ -33,7 +33,7 @@ def start(bot, update):
             text=dedent('''\
                         Hi! Prepare to be fucked by the long dick of the law.
                         How it works:
-                        * Nominate someone for kicking by replying to their comment with /ban
+                        * Nominate someone for kicking by replying to their comment with /kick
                         * Voting begins
                         * In order for voting to be valid, a minimum number of participants (quorum) must be reached.
                         * Once the quorum is reached, majority wins.'''))
@@ -52,14 +52,14 @@ def update_settings(bot, update):
     pass
 
 
-def ban(bot, update, job_queue):
-    try:
-        exilee_id = update.message.reply_to_message.from_user.id
-        exilee_username = update.message.reply_to_message.from_user.username
-    except AttributeError:
-        bot.sendMessage(chat_id, "Usage: reply to a comment of the person you want to kick with /ban")
-    exiler = update.message.from_user['username']
+def kick(bot, update, job_queue):
     chat_id = update.message.chat_id
+    if not update.message.reply_to_message:
+        bot.sendMessage(chat_id, "Usage: reply to a comment of the person you want to kick with /kick")
+        return
+    exilee_id = update.message.reply_to_message.from_user.id
+    exilee_username = update.message.reply_to_message.from_user.username
+    exiler = update.message.from_user['username']
     if chat_id in sessions:
         bot.sendMessage(chat_id, "Error: One #beef at a time, ladies 🐄🐮🐃🍴")
         return
@@ -68,7 +68,7 @@ def ban(bot, update, job_queue):
 
     s = Session(exiler, exilee_id, dict())
     print("Initiating", s, exilee_username)
-    bot.sendMessage(chat_id, text=exilee_username+ " nominated for banning by " + s.exiler + \
+    bot.sendMessage(chat_id, text=exilee_username+ " nominated for kicking by " + s.exiler + \
         "\nVote with /yes or /no\nTimer: " + str(settings[chat_id].timer) + "s\nQuorum: " + str(settings[chat_id].quorum))
 
     job = Job(conclude, settings[chat_id].timer, repeat=False, context=chat_id)
@@ -83,7 +83,7 @@ def active_session(func):
         if chat_id in sessions:
             return func(bot, update, *args)
         else:
-            bot.sendMessage(update.message.chat_id, text="Not in a session. Start some shit with /ban first.")
+            bot.sendMessage(update.message.chat_id, text="Not in a session. Start some shit with /kick first.")
     return inner
 
 
@@ -112,13 +112,13 @@ def abort(bot, update):
     chat_id = update.message.chat_id
     s = sessions[chat_id]
     if update.message.from_user['username'] == s.exiler:
-        bot.sendMessage(chat_id, text="Banning aborted by " + s.exiler)
+        bot.sendMessage(chat_id, text="Kicking aborted by " + s.exiler)
         job = jobs[chat_id]
         job.schedule_removal()
         del jobs[chat_id]
         del sessions[chat_id]
     else:
-        bot.sendMessage(chat_id, text="Banning can only be aborted by " + s.exiler)
+        bot.sendMessage(chat_id, text="Kicking can only be aborted by " + s.exiler)
 
 
 def conclude(bot, job):
@@ -143,7 +143,7 @@ def main():
 
     dp = updater.dispatcher
     dp.add_handler(CommandHandler("start", start))
-    dp.add_handler(CommandHandler("ban", ban, pass_job_queue=True))
+    dp.add_handler(CommandHandler("kick", kick, pass_job_queue=True))
     dp.add_handler(CommandHandler("abort", abort))
     dp.add_handler(CommandHandler("yes", yes))
     dp.add_handler(CommandHandler("no", no))
