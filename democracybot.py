@@ -1,9 +1,13 @@
 from telegram.ext import Updater, CommandHandler, Job
+import logging
 from recordclass import recordclass
 from textwrap import dedent
 from math import ceil
 from config import key
 
+logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+                    level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 Session = recordclass('Session', ['exiler', 'exilee_id', 'votes'])
 Settings = recordclass('Settings', ['quorum', 'timer'])
@@ -137,6 +141,9 @@ def conclude(bot, job):
     del sessions[chat_id]
 
 
+def error(bot, update, error):
+    logger.warn('Update "%s" caused error "%s"' % (update, error))
+
 
 def main():
     updater = Updater(key)
@@ -147,6 +154,7 @@ def main():
     dp.add_handler(CommandHandler("abort", abort))
     dp.add_handler(CommandHandler("yes", yes))
     dp.add_handler(CommandHandler("no", no))
+    dp.add_error_handler(error)
     updater.start_polling()
     updater.idle()
 
