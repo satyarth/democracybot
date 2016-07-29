@@ -14,18 +14,17 @@ Settings = recordclass('Settings', ['quorum', 'timer'])
 
 
 
-def new_session(func):
+def session_closed(func):
     def inner(bot, update, *args, **kwargs):
         chat_id = update.message.chat_id
         if chat_id in sessions:
-            bot.sendMessage(chat_id, "Error: One #beef at a time, ladies 🐄🐮🐃🍴")
+            bot.sendMessage(chat_id, text="Error: One #beef at a time, ladies 🐄🐮🐃🍴")
             return
-        else:
-            return func(bot, update, *args, **kwargs)
+        return func(bot, update, *args, **kwargs)
     return inner
 
 
-def active_session(func):
+def session_open(func):
     def inner(bot, update, *args, **kwargs):
         chat_id = update.message.chat_id
         if chat_id not in sessions:
@@ -50,7 +49,7 @@ def init_settings(bot, chat_id):
     bot.sendMessage(chat_id, text="Bot settings initialized.\n" +
                                   "Quorum: " + str(quorum) + "\n"+
                                   "Timer: 60s")
-@new_session
+@session_closed
 def start(bot, update):
     chat_id = update.message.chat_id
     init_settings(bot, update.message.chat_id)
@@ -73,7 +72,7 @@ def update_settings(bot, update):
         init_settings(bot, chat_id)
     pass
 
-@new_session
+@session_closed
 def kick(bot, update, job_queue):
     chat_id = update.message.chat_id
     if not update.message.reply_to_message:
@@ -96,7 +95,7 @@ def kick(bot, update, job_queue):
     sessions[chat_id] = s
 
 
-@active_session
+@session_open
 def cast(bot, update, vote):
     chat_id = update.message.chat_id
     s = sessions[chat_id]
@@ -116,7 +115,7 @@ def no(bot, update):
     cast(bot, update, False)
 
 
-@active_session    
+@session_open
 def abort(bot, update):
     chat_id = update.message.chat_id
     s = sessions[chat_id]
