@@ -9,7 +9,7 @@ logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s
                     level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-Session = recordclass('Session', ['exiler', 'exilee_id', 'votes'])
+Session = recordclass('Session', ['initiator', 'action', 'votes'])
 Settings = recordclass('Settings', ['quorum', 'timer'])
 
 
@@ -34,6 +34,15 @@ def session_open(func):
     return inner
 
 
+def is_reply(func):
+    def inner(bot, update, *args, **kwargs):
+        if not update.message.reply_to_message:
+            bot.sendMessage(update.message.chat_id, "Usage: reply to a comment of the person you want to act on")
+            return
+        return func(bot, update, *args, **kwargs)
+    return inner
+
+
 def update_votes(bot, chat_id):
     s = sessions[chat_id]
     print(s.votes)
@@ -44,7 +53,7 @@ def update_votes(bot, chat_id):
 
 def init_settings(bot, chat_id):
     member_count = bot.getChatMembersCount(chat_id)
-    quorum = ceil(member_count*0.3) if ceil(member_count*0.31) > 3 else 3
+    quorum = 1
     settings[chat_id] = Settings(quorum, 60)
     bot.sendMessage(chat_id, text="Bot settings initialized.\n" +
                                   "Quorum: " + str(quorum) + "\n"+
@@ -73,26 +82,24 @@ def update_settings(bot, update):
     pass
 
 @session_closed
+@is_reply
 def kick(bot, update, job_queue):
     chat_id = update.message.chat_id
-    if not update.message.reply_to_message:
-        bot.sendMessage(chat_id, "Usage: reply to a comment of the person you want to kick with /kick")
-        return
     exilee_id = update.message.reply_to_message.from_user.id
     exilee_username = update.message.reply_to_message.from_user.username
-    exiler = update.message.from_user['username']
+    exiler_id = update.message.from_user['id']
+    exiler_username = update.message.from_user['username']
+
     if chat_id not in settings:
         init_settings(bot, chat_id)
 
-    s = Session(exiler, exilee_id, dict())
-    print("Initiating", s, exilee_username)
-    bot.sendMessage(chat_id, text=exilee_username+ " nominated for kicking by " + s.exiler + \
+    bot.sendMessage(chat_id, text=exilee_username+ " nominated for kicking by " + exiler_username + \
         "\nVote with /yes or /no\nTimer: " + str(settings[chat_id].timer) + "s\nQuorum: " + str(settings[chat_id].quorum))
 
     job = Job(conclude, settings[chat_id].timer, repeat=False, context=chat_id)
     job_queue.put(job)
     jobs[chat_id] = job
-    sessions[chat_id] = s
+    sessions[chat_id] = Session(exiler_id, lambda:bot.kickChatMember(chat_id, exilee_id), dict())
 
 
 @session_open
@@ -119,14 +126,14 @@ def no(bot, update):
 def abort(bot, update):
     chat_id = update.message.chat_id
     s = sessions[chat_id]
-    if update.message.from_user['username'] == s.exiler:
-        bot.sendMessage(chat_id, text="Kicking aborted by " + s.exiler)
+    if update.message.from_user['id'] == s.initiator:
+        bot.sendMessage(chat_id, text="Kicking aborted")
         job = jobs[chat_id]
         job.schedule_removal()
         del jobs[chat_id]
         del sessions[chat_id]
     else:
-        bot.sendMessage(chat_id, text="Kicking can only be aborted by " + s.exiler)
+        bot.sendMessage(chat_id, text="Kicking can only be aborted by the initiator")
 
 
 def conclude(bot, job):
@@ -136,7 +143,7 @@ def conclude(bot, job):
     response = "Voting over\n"
     if len(s.votes) >= set_.quorum and len([None for voter in s.votes if s.votes[voter]]) > len([None for voter in s.votes if not s.votes[voter]]):
         response += 'Motion passed\n'
-        bot.kickChatMember(chat_id, s.exilee_id)
+        s.action()
     else:
         response += 'Motion failed\n'
         if len(s.votes) <= set_.quorum:
