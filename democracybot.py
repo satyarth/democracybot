@@ -106,8 +106,8 @@ def kick(bot, update, job_queue):
 def cast(bot, update, vote):
     chat_id = update.message.chat_id
     s = sessions[chat_id]
-    if update.message.from_user['username'] not in s.votes:
-        s.votes[update.message.from_user['username']] = vote
+    if update.message.from_user['id'] not in s.votes:
+        s.votes[update.message.from_user['id']] = vote
         bot.sendMessage(chat_id, text="Vote registered 👍")
         update_votes(bot, chat_id)
     else:
