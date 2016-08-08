@@ -37,7 +37,7 @@ def session_open(func):
 def is_reply(func):
     def inner(bot, update, *args, **kwargs):
         if not update.message.reply_to_message:
-            bot.sendMessage(update.message.chat_id, "Usage: reply to a comment of the person you want to act on")
+            bot.sendMessage(update.message.chat_id, "Usage: reply to a message of the person you want to act on")
             return
         return func(bot, update, *args, **kwargs)
     return inner
@@ -66,7 +66,7 @@ def start(bot, update):
         text=dedent('''\
                     Hi! Prepare to be fucked by the long dick of the law.
                     How it works:
-                    * Nominate someone for kicking by replying to their comment with /kick
+                    * Nominate someone for kicking by replying to their message with /kick
                     * Voting begins
                     * In order for voting to be valid, a minimum number of participants (quorum) must be reached.
                     * Once the quorum is reached, majority wins.'''))
