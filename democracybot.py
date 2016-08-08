@@ -53,7 +53,7 @@ def update_votes(bot, chat_id):
 
 def init_settings(bot, chat_id):
     member_count = bot.getChatMembersCount(chat_id)
-    quorum = 1
+    quorum = max(3, ceil(member_count*0.3))
     settings[chat_id] = Settings(quorum, 60)
     bot.sendMessage(chat_id, text="Bot settings initialized.\n" +
                                   "Quorum: " + str(quorum) + "\n"+
